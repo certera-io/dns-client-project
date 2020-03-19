@@ -45,7 +45,12 @@ namespace DnsClientProject.Providers
         public Task<DnsRecord> Get(Options opts)
         {
             var recordType = ConvertRecordType(opts.RecordType);
-            var record = _dnsClient.Get(_envResourceGroup, opts.Domain, opts.Name, recordType);
+            RecordSet record = null;
+            try
+            {
+                record = _dnsClient.Get(_envResourceGroup, opts.Domain, opts.Name, recordType);
+            }
+            catch { }
 
             if (record == null)
             {
@@ -110,7 +115,12 @@ namespace DnsClientProject.Providers
         public Task<SetResult> Set(Options opts)
         {
             var recordType = ConvertRecordType(opts.RecordType);
-            var record = _dnsClient.Get(_envResourceGroup, opts.Domain, opts.Name, recordType);
+            RecordSet record = null;
+            try
+            {
+                record = _dnsClient.Get(_envResourceGroup, opts.Domain, opts.Name, recordType);
+            }
+            catch { }
 
             if (record == null)
             {
@@ -272,7 +282,13 @@ namespace DnsClientProject.Providers
             bool delete = false;
             var recordType = ConvertRecordType(opts.RecordType);
 
-            var record = _dnsClient.Get(_envResourceGroup, opts.Domain, opts.Name, recordType);
+            RecordSet record = null;
+            try
+            {
+                record = _dnsClient.Get(_envResourceGroup, opts.Domain, opts.Name, recordType);
+            }
+            catch { }
+
             if (record == null)
             {
                 return Task.FromResult(DeleteOperation.Noop);
@@ -347,12 +363,15 @@ namespace DnsClientProject.Providers
                         throw new NotImplementedException("SRV records are not implemented");
                     case RecordType.TXT:
                         {
-                            var buckets = new List<IList<string>>();
+                            var buckets = new List<Tuple<IList<string>, string>>();
                             foreach (var txtRec in record.TxtRecords)
                             {
-                                if (txtRec.Value.Contains(opts.Value))
+                                foreach (var txtValue in txtRec.Value)
                                 {
-                                    buckets.Add(txtRec.Value);
+                                    if (string.Equals(txtValue, opts.Value))
+                                    {
+                                        buckets.Add(Tuple.Create(txtRec.Value, opts.Value));
+                                    }
                                 }
                             }
 
@@ -360,10 +379,32 @@ namespace DnsClientProject.Providers
                             {
                                 foreach(var b in buckets)
                                 {
-                                    b.Remove(opts.Value);
+                                    b.Item1.Remove(b.Item2);
                                 }
                                 dirty = true;
                             }
+
+                            // Can't perform update that leaves an empty TXT record set. Simply delete it.
+                            var emptyTxtRecords = new List<TxtRecord>();
+                            foreach (var txtRec in record.TxtRecords)
+                            {
+                                if (txtRec.Value.Count == 0)
+                                {
+                                    emptyTxtRecords.Add(txtRec);
+                                }
+                            }
+                            foreach (var emptyTxtRec in emptyTxtRecords)
+                            {
+                                record.TxtRecords.Remove(emptyTxtRec);
+                            }
+
+                            if (!record.TxtRecords.Any(x => x.Value.Count > 0))
+                            {
+                                _dnsClient.Delete(_envResourceGroup, opts.Domain, opts.Name, recordType);
+
+                                return Task.FromResult(DeleteOperation.Deleted);
+                            }
+
                             break;
                         }
                 }

@@ -1,8 +1,10 @@
+using DnsClientProject.Models;
 using DnsClientProject.Providers;
 using Microsoft.Azure.Management.Dns.Models;
 using Moq;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace DnsClientProject.Test
@@ -15,6 +17,46 @@ namespace DnsClientProject.Test
         private const string ENV_CLIENT_ID = "67890";
         private const string ENV_CLIENT_SECRET = "$ecret";
 
+        private readonly Dictionary<string, RecordSet> _recordSets = new Dictionary<string, RecordSet>
+            {
+                { "www", new RecordSet
+                            {
+                                TTL = 3600,
+                                CnameRecord = new CnameRecord { Cname = "some.other.domain" }
+}
+                },
+                { "ttl-rec", new RecordSet
+                            {
+                                TTL = 300,
+                                CnameRecord = new CnameRecord { Cname = "my.rec" }
+                            }
+                },
+                { "delete1", new RecordSet
+                            {
+                                TTL = 300,
+                                TxtRecords = new List<TxtRecord> { new TxtRecord { Value = new List<string> { "a", "b" } } }
+                            }
+                },
+                { "delete2", new RecordSet
+                            {
+                                TTL = 300,
+                                TxtRecords = new List<TxtRecord> { new TxtRecord { Value = new List<string> { "a", "b" } } }
+                            }
+                },
+                { "delete3", new RecordSet
+                            {
+                                TTL = 300,
+                                TxtRecords = new List<TxtRecord> { new TxtRecord { Value = new List<string> { "a" } }, new TxtRecord { Value = new List<string> { "b" } } }
+                            }
+                },
+                { "delete4", new RecordSet
+                            {
+                                TTL = 300,
+                                TxtRecords = new List<TxtRecord> { new TxtRecord { Value = new List<string> { "a" } }, new TxtRecord { Value = new List<string> { "b" } } }
+                            }
+                }
+            };
+
         protected override IProvider SetupProvider()
         {
             var mockDnsWrapper = new Mock<AzureDnsClientWrapper>();
@@ -23,23 +65,8 @@ namespace DnsClientProject.Test
             mockDnsWrapper.Setup(x => x.Get(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<RecordType>()))
                 .Returns((string rg, string d, string n, RecordType rt) =>
                 {
-                    switch (n)
-                    {
-                        case "www":
-                            return new RecordSet
-                            {
-                                TTL = 3600,
-                                CnameRecord = new CnameRecord { Cname = "some.other.domain" }
-                            };
-                        case "ttl-rec":
-                            return new RecordSet
-                            {
-                                TTL = 300,
-                                CnameRecord = new CnameRecord { Cname = "my.rec" }
-                            };
-                        default:
-                            return null;
-                    }
+                    _recordSets.TryGetValue(n, out var rs);
+                    return rs;
                 });
             mockDnsWrapper.Setup(x => x.CreateOrUpdate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<RecordType>(), It.IsAny<RecordSet>()))
                 .Verifiable();
@@ -81,6 +108,121 @@ namespace DnsClientProject.Test
             Assert.AreEqual(_provider.GetFieldValue<string>("_envClientSecret"), ENV_CLIENT_SECRET);
 
             Assert.Pass();
+        }
+
+        [Test]
+        public async Task DeletesTxtRecord()
+        {
+            var opts = new Options
+            {
+                Name = "delete1",
+                Value = "a",
+                RecordType = "TXT"
+            };
+            var result = await _provider.Delete(opts);
+            Assert.AreEqual(DeleteOperation.Deleted, result);
+
+            var rs = _recordSets["delete1"];
+            Assert.IsTrue(rs.TxtRecords[0].Value.Count == 1);
+            Assert.IsTrue(rs.TxtRecords[0].Value[0] == "b");
+        }
+
+        [Test]
+        public async Task DeletesAllTxtRecords()
+        {
+            var opts = new Options
+            {
+                Name = "delete2",
+                Value = "a",
+                RecordType = "TXT"
+            };
+            var result = await _provider.Delete(opts);
+            Assert.AreEqual(DeleteOperation.Deleted, result);
+
+            var rs = _recordSets["delete2"];
+
+            Assert.IsTrue(rs.TxtRecords[0].Value.Count == 1);
+
+            opts = new Options
+            {
+                Name = "delete2",
+                Value = "b",
+                RecordType = "TXT"
+            };
+            result = await _provider.Delete(opts);
+            Assert.AreEqual(DeleteOperation.Deleted, result);
+
+            Assert.IsTrue(rs.TxtRecords.Count == 0);
+        }
+
+        [Test]
+        public async Task DeletesPartialTxtRecord()
+        {
+            var opts = new Options
+            {
+                Name = "delete3",
+                Value = "a",
+                RecordType = "TXT"
+            };
+            var result = await _provider.Delete(opts);
+            Assert.AreEqual(DeleteOperation.Deleted, result);
+
+            var rs = _recordSets["delete3"];
+
+            opts = new Options
+            {
+                Name = "delete3",
+                Value = "b",
+                RecordType = "TXT"
+            };
+            result = await _provider.Delete(opts);
+            Assert.AreEqual(DeleteOperation.Deleted, result);
+
+            Assert.IsTrue(rs.TxtRecords.Count == 0);
+        }
+
+        [Test]
+        public async Task DeletesLeavesOtherTxtRecord()
+        {
+            var opts = new Options
+            {
+                Name = "delete4",
+                Value = "a",
+                RecordType = "TXT"
+            };
+            var result = await _provider.Delete(opts);
+            Assert.AreEqual(DeleteOperation.Deleted, result);
+
+            var rs = _recordSets["delete4"];
+
+            Assert.IsTrue(rs.TxtRecords.Count == 1);
+            Assert.IsTrue(rs.TxtRecords[0].Value.Count == 1);
+            Assert.IsTrue(rs.TxtRecords[0].Value[0] == "b");
+        }
+
+        [Test]
+        public async Task DeletesFullTxtRecord()
+        {
+            var opts = new Options
+            {
+                Name = "delete1",
+                RecordType = "TXT"
+            };
+            var result = await _provider.Delete(opts);
+            Assert.AreEqual(DeleteOperation.Deleted, result);
+        }
+
+        [Test]
+        public async Task DoesNotDeleteRecord()
+        {
+            var opts = new Options
+            {
+                Name = "unknown",
+                Value = "a",
+                RecordType = "TXT"
+            };
+            var result = await _provider.Delete(opts);
+            Assert.AreEqual(DeleteOperation.Noop, result);
         }
     }
 }
