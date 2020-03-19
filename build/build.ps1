@@ -16,6 +16,13 @@ $ProjectPath = Join-Path -Path $RepoRoot "src\DnsClientProject\DnsClientProject.
 $PublishOutput = Join-Path -Path $RepoRoot "src\publish\$Runtime"
 $Profile = Join-Path -Path $RepoRoot "src\DnsClientProject\Properties\PublishProfiles\template.pubxml"
 
+# Set the version in the csproj
+$xml = [Xml] (Get-Content $ProjectPath)
+$xml.Project.PropertyGroup.Version = $Version
+$xml.Project.PropertyGroup.AssemblyVersion = $Version
+$xml.Project.PropertyGroup.FileVersion = $Version
+$xml.Save($ProjectPath);
+
 Write-Output "PublishOutput: $PublishOutput"
 Write-Output "Profile: $Profile"
 
@@ -36,6 +43,6 @@ if ($Runtime.StartsWith("win")) {
 	$ReadyToRun = "true"
 }
 
-dotnet publish $ProjectPath -c Release -o "$PublishOutput" /p:PublishProfile="$Profile" /p:Version=$Version /p:ReadyToRun=$ReadyToRun /p:RuntimeIdentifier=$Runtime
+dotnet publish $ProjectPath -c Release -o "$PublishOutput" /p:PublishProfile="$Profile" /p:Version=$Version /p:AssemblyVersion=$Version /p:FileVersion=$Version /p:ReadyToRun=$ReadyToRun /p:RuntimeIdentifier=$Runtime
 
 ./zip.ps1 $RepoRoot "$PublishOutput" $RunTime $Version

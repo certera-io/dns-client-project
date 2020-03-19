@@ -40,6 +40,6 @@ if (Test-Path $ZipFile)
 
 Copy-Item -Path "$PublishOutput\*" -Destination "$Temp" -recurse -Force -Verbose
 
-Set-Content -Path "$Temp\version.txt" -Value "v$Version"
+#Set-Content -Path "$Temp\version.txt" -Value "v$Version"
 
 [io.compression.zipfile]::CreateFromDirectory($Temp, $ZipFile)
