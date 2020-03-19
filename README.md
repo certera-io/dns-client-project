@@ -23,7 +23,11 @@ Examples
 
     dnsc --get -provider azure -domain example.com -recordtype CNAME -name www
 
-    dnsc --set -p azure -d example.com -r TXT -v sometxtvalue123
+    dnsc --set -p azure -d example.com -r TXT -n "@" -v sometxtvalue123
     dnsc --set -p azure -d example.com -r CNAME -n www -v some.domain.com
 
+    # delete entire record
     dnsc --delete -p azure -d example.com -r CNAME -n www
+    
+    # delete single value from record
+    dnsc --delete -p azure -d example.com -r TXT -n www -v "single value"
