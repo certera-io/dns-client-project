@@ -9,9 +9,22 @@ namespace DnsClientProject.Providers
     {
         private DnsManagementClient _dnsClient;
 
-        public virtual async Task Initialize(string tenantId, string clientId, string clientSecret, string subscriptionId)
+        public virtual async Task Initialize(string tenantId, string clientId, string clientSecret, string subscriptionId, string cloud)
         {
-            var serviceCreds = await ApplicationTokenProvider.LoginSilentAsync(tenantId, clientId, clientSecret);
+            var settings = ActiveDirectoryServiceSettings.Azure;
+            switch (cloud?.ToUpper())
+            {
+                case "AZURECHINA":
+                    settings = ActiveDirectoryServiceSettings.AzureChina;
+                    break;
+                case "AZUREGERMANY":
+                    settings = ActiveDirectoryServiceSettings.AzureGermany;
+                    break;
+                case "AZUREUSGOVERNMENT":
+                    settings = ActiveDirectoryServiceSettings.AzureUSGovernment;
+                    break;
+            }
+            var serviceCreds = await ApplicationTokenProvider.LoginSilentAsync(tenantId, clientId, clientSecret, settings);
             _dnsClient = new DnsManagementClient(serviceCreds);
             _dnsClient.SubscriptionId = subscriptionId;
         }

@@ -14,12 +14,14 @@ namespace DnsClientProject.Providers
         private const string EnvTenantId = "AZURE_TENANT_ID";
         private const string EnvClientId = "AZURE_CLIENT_ID";
         private const string EnvClientSecret = "AZURE_CLIENT_SECRET";
+        private const string EnvCloud = "AZURE_CLOUD";
 
         private string _envSubscriptionId;
         private string _envResourceGroup;
         private string _envTenantId;
         private string _envClientId;
         private string _envClientSecret;
+        private string _envCloud;
 
         private AzureDnsClientWrapper _dnsClient;
 
@@ -30,14 +32,15 @@ namespace DnsClientProject.Providers
             _envTenantId = ConfigManager.GetEnvVarRequired(EnvTenantId);
             _envClientId = ConfigManager.GetEnvVarRequired(EnvClientId);
             _envClientSecret = ConfigManager.GetEnvVarRequired(EnvClientSecret);
+            _envCloud = ConfigManager.GetEnvVarOrDefault(EnvCloud, "AzureCloud");
 
-            _dnsClient = await InitializeDnsClient(_envTenantId, _envClientId, _envClientSecret, _envSubscriptionId);
+            _dnsClient = await InitializeDnsClient(_envTenantId, _envClientId, _envClientSecret, _envSubscriptionId, _envCloud);
         }
 
-        internal virtual async Task<AzureDnsClientWrapper> InitializeDnsClient(string tenantId, string clientId, string clientSecret, string subscriptionId)
+        internal virtual async Task<AzureDnsClientWrapper> InitializeDnsClient(string tenantId, string clientId, string clientSecret, string subscriptionId, string cloud)
         {
             var dnsClient = new AzureDnsClientWrapper();
-            await dnsClient.Initialize(tenantId, clientId, clientSecret, subscriptionId);
+            await dnsClient.Initialize(tenantId, clientId, clientSecret, subscriptionId, string cloud);
 
             return dnsClient;
         }
