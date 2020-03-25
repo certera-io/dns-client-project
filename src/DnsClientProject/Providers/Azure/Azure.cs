@@ -40,7 +40,7 @@ namespace DnsClientProject.Providers
         internal virtual async Task<AzureDnsClientWrapper> InitializeDnsClient(string tenantId, string clientId, string clientSecret, string subscriptionId, string cloud)
         {
             var dnsClient = new AzureDnsClientWrapper();
-            await dnsClient.Initialize(tenantId, clientId, clientSecret, subscriptionId, string cloud);
+            await dnsClient.Initialize(tenantId, clientId, clientSecret, subscriptionId, cloud);
 
             return dnsClient;
         }
