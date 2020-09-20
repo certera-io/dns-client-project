@@ -60,7 +60,7 @@ namespace DnsClientProject.Test
         protected override IProvider SetupProvider()
         {
             var mockDnsWrapper = new Mock<AzureDnsClientWrapper>();
-            mockDnsWrapper.Setup(x => x.Initialize(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            mockDnsWrapper.Setup(x => x.Initialize(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
                 .Verifiable();
             mockDnsWrapper.Setup(x => x.Get(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<RecordType>()))
                 .Returns((string rg, string d, string n, RecordType rt) =>
@@ -74,7 +74,7 @@ namespace DnsClientProject.Test
                 .Verifiable();
 
             var mockProvider = new Mock<Azure>();
-            mockProvider.Setup(x => x.InitializeDnsClient(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            mockProvider.Setup(x => x.InitializeDnsClient(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
                 .Returns(Task.FromResult(mockDnsWrapper.Object));
 
             return mockProvider.Object;
