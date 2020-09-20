@@ -258,7 +258,7 @@ namespace DnsClientProject.Providers
                     case RecordType.TXT:
                         if (!record.TxtRecords.SelectMany(x => x.Value).Any(x => x == opts.Value))
                         {
-                            record.TxtRecords.First().Value.Add(opts.Value);
+                            record.TxtRecords.Add(new TxtRecord { Value = new List<string> { opts.Value } });
                             dirty = true;
                         }
                         break;
