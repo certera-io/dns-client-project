@@ -1,8 +1,8 @@
 ## DNS Client Project
 
 This project aims to create open, flexible and reusable DNS clients for the various public DNS hosting providers out there, 
-such as Cloudflare, Azure, AWS Route53 and others. There are a few projects out there that have implementations of clients 
-for their purposes, but nothing that is really reusable for any purpose to serve the community at large.
+such as Cloudflare, Azure, AWS Route53 and others. ~There are a few projects out there that have implementations of clients 
+for their purposes, but nothing that is really reusable for any purpose to serve the community at large.~ Now that I've found Lexicon (https://github.com/AnalogJ/lexicon), I recommend using that instead of DNSC.
 
 The following projects were used as inspiration and reference:
 * https://github.com/go-acme/lego
